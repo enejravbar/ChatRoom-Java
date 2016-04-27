@@ -6,6 +6,7 @@ public class ChatServer {
 
 	protected int serverPort = 1234;
 	protected List<Socket> clients = new ArrayList<Socket>(); // list of clients
+	protected List<String> uporabniskaImena = new ArrayList<String>();
 
 	public static void main(String[] args) throws Exception {
 		new ChatServer();
@@ -25,12 +26,23 @@ public class ChatServer {
 
 		// start listening for new connections
 		System.out.println("[system] listening ...");
+		
 		try {
 			while (true) {
 				Socket newClientSocket = serverSocket.accept(); // wait for a new client connection
 				synchronized(this) {
 					clients.add(newClientSocket); // add client to the list of clients
+
 				}
+				DataInputStream in = new DataInputStream(newClientSocket.getInputStream()); // dodaj uporabnika na listo uporabnikov
+				String uporabnik=in.readUTF();
+				uporabniskaImena.add(uporabnik);
+				System.out.println("Pridruzil se je uporabnik " + "\""+uporabnik+"\"");
+
+				/*for(int i=0; i<uporabniskaImena.size(); i++){
+					System.out.println(uporabniskaImena.get(i));
+				}*/
+
 				ChatServerConnector conn = new ChatServerConnector(this, newClientSocket); // create a new thread for communication with the new client
 				conn.start(); // run the new thread
 			}
@@ -52,9 +64,9 @@ public class ChatServer {
 
 	// send a message to all clients connected to the server
 	public void sendToAllClients(String message) throws Exception {
-		Iterator<Socket> i = clients.iterator();
-		while (i.hasNext()) { // iterate through the client list
-			Socket socket = (Socket) i.next(); // get the socket for communicating with this client
+		
+		for(int i=0; i< clients.size(); i++){
+			Socket socket = clients.get(i); // get the socket for communicating with this client
 			try {
 				DataOutputStream out = new DataOutputStream(socket.getOutputStream()); // create output stream for sending messages to the client
 				out.writeUTF(message); // send message to the client
@@ -62,6 +74,31 @@ public class ChatServer {
 				System.err.println("[system] could not send message to a client");
 				e.printStackTrace(System.err);
 			}
+		}
+	}
+
+	public void posljiPrivatnoSporocilo(String message, String naslovnik, String uporabnik) throws Exception {
+		Socket povratniSocket=null;
+		for(int i=0; i< clients.size(); i++){
+			if((uporabniskaImena.get(i)).equals(uporabnik)){
+				povratniSocket= clients.get(i);
+			}
+			if((uporabniskaImena.get(i)).equals(naslovnik)){
+				Socket privatniSocket = clients.get(i); // get the socket for communicating with this client
+				try {
+				DataOutputStream out = new DataOutputStream(privatniSocket.getOutputStream()); // create output stream for sending messages to the client
+				out.writeUTF(message); // send message to the client
+				} catch (Exception e) {
+				System.err.println("[system] could not send message to a client");
+				e.printStackTrace(System.err);
+				}
+			}if(i==clients.size()-1){
+
+				DataOutputStream out = new DataOutputStream(povratniSocket.getOutputStream()); // create output stream for sending messages to the client
+				out.writeUTF("Privatnega sporocila ni bilo mogoce posredovati! Uporabnik ni prijavljen."); // send message to the client
+				break;
+			}
+			
 		}
 	}
 
@@ -84,6 +121,7 @@ class ChatServerConnector extends Thread {
 	public void run() {
 		
 		DataInputStream in;
+
 		try {
 			in = new DataInputStream(this.socket.getInputStream()); // create input stream for listening for incoming messages
 		} catch (IOException e) {
@@ -113,10 +151,12 @@ class ChatServerConnector extends Thread {
 
 			System.out.println("[RKchat] [" + this.socket.getPort() + "] " + "Uporabnik: \"" + podatkiOSporocilu[0] + "\" Cas: "+ podatkiOSporocilu[3] + "\nSporocilo: "+ podatkiOSporocilu[4]); // print the incoming message in the console
 
-			String msg_send = ": " + msg_received; // TODO
-
-			try {
-				this.server.sendToAllClients(podatkiOSporocilu[0]+ ": " + podatkiOSporocilu[4]); // send message to all clients
+			try {	
+				if(podatkiOSporocilu[1].equals("0")){  // imamo javno sporocilo
+						this.server.sendToAllClients(podatkiOSporocilu[0]+ ": " + podatkiOSporocilu[4]); // send message to all clients
+				}else{
+						this.server.posljiPrivatnoSporocilo( ("Privatno od "+podatkiOSporocilu[0]+ ": " + podatkiOSporocilu[4] ), podatkiOSporocilu[2], podatkiOSporocilu[0] );
+				}
 			} catch (Exception e) {
 				System.err.println("[system] there was a problem while sending the message to all clients");
 				e.printStackTrace(System.err);

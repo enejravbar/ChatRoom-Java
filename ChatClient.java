@@ -19,7 +19,7 @@ public class ChatClient extends Thread
 		DataInputStream in = null;
 		DataOutputStream out = null;
 		Scanner sc = new Scanner(System.in);
-
+		String uporabnik="";
 		// connect to the chat server
 		try {
 			System.out.println("[system] connecting to chat server ...");
@@ -27,7 +27,8 @@ public class ChatClient extends Thread
 			in = new DataInputStream(socket.getInputStream()); // create input stream for listening for incoming messages
 			out = new DataOutputStream(socket.getOutputStream()); // create output stream for sending messages
 			System.out.println("[system] connected");
-
+			uporabnik=JOptionPane.showInputDialog("Vpisite svoje uporabnisko ime."); // posreduj imeUporabnika
+			this.sendMessage(uporabnik,out);
 			ChatClientMessageReceiver message_receiver = new ChatClientMessageReceiver(in); // create a separate thread for listening to messages from the chat server
 			message_receiver.start(); // run the new thread
 		} catch (Exception e) {
@@ -35,7 +36,7 @@ public class ChatClient extends Thread
 			System.exit(1);
 		}
 		
-		String uporabnik=JOptionPane.showInputDialog("Vpisite svoje uporabnisko ime.");
+		
 
 		// read from STDIN and send messages to the chat server
 		BufferedReader std_in = new BufferedReader(new InputStreamReader(System.in));
