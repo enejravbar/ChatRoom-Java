@@ -1,5 +1,9 @@
 import java.io.*;
 import java.net.*;
+import java.util.Scanner;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import javax.swing.*;
 
 public class ChatClient extends Thread
 {
@@ -7,12 +11,14 @@ public class ChatClient extends Thread
 
 	public static void main(String[] args) throws Exception {
 		new ChatClient();
+		
 	}
 
 	public ChatClient() throws Exception {
 		Socket socket = null;
 		DataInputStream in = null;
 		DataOutputStream out = null;
+		Scanner sc = new Scanner(System.in);
 
 		// connect to the chat server
 		try {
@@ -28,12 +34,14 @@ public class ChatClient extends Thread
 			e.printStackTrace(System.err);
 			System.exit(1);
 		}
+		
+		String uporabnik=JOptionPane.showInputDialog("Vpisite svoje uporabnisko ime.");
 
 		// read from STDIN and send messages to the chat server
 		BufferedReader std_in = new BufferedReader(new InputStreamReader(System.in));
 		String userInput;
 		while ((userInput = std_in.readLine()) != null) { // read a line from the console
-			this.sendMessage(userInput, out); // send the message to the chat server
+			this.sendMessage( kreirajSporocilo(uporabnik, preveriAliJeSporociloPrivatno(userInput), pridobiNaslovnika(userInput), userInput) , out); // send the message to the chat server
 		}
 
 		// cleanup
@@ -51,6 +59,54 @@ public class ChatClient extends Thread
 			System.err.println("[system] could not send message");
 			e.printStackTrace(System.err);
 		}
+	}
+
+
+	/* Metoda kreira sporocilo, ki vsebuje vse potrebno podatke, ki jih mora prejeti strežnik. Gre za neke vrste moj JSON format */
+	/*
+	sporocilo= "uporabnik:Enej nacin:1=privatno 0=javno cas: trenutniCas sporocilo: "
+	*/
+
+
+	private static String kreirajSporocilo(String uporabnik, String nacin, String naslovnik,String sporocilo ){
+		Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+       	String cas=sdf.format(cal.getTime());
+
+       	String tabela[] = new String[1000];
+       	if(preveriAliJeSporociloPrivatno(sporocilo).equals("1")){
+			tabela=sporocilo.split("\"");
+			sporocilo="";
+			for(int i=2; i<tabela.length;i++){
+				sporocilo=sporocilo+tabela[i];
+			}
+			if(sporocilo.charAt(0)==' '){
+				sporocilo=sporocilo.substring(1, sporocilo.length());
+			}
+			
+		}
+
+		String message= "{"+uporabnik + "}" + "{"+nacin+"}" + "{"+naslovnik +"}" + "{"+ cas+"}"+ "{"+sporocilo+"}";
+		return message;
+	}
+	private static String preveriAliJeSporociloPrivatno(String sporocilo){
+		if(sporocilo.indexOf("/privatno")>-1){
+			return "1"; // sporocilo je privatno
+		}else{
+			return "0"; // sporocilo je javno
+		}
+
+	}
+	private static String pridobiNaslovnika(String sporocilo){
+		String tabela[] = new String[1000];
+
+		if(preveriAliJeSporociloPrivatno(sporocilo).equals("1")){
+			tabela=sporocilo.split("\"");
+			//System.out.println("Naslovnik je: " + tabela[1]);
+			return tabela[1]; // vrni naslovnika
+		}
+		return null;
+
 	}
 }
 

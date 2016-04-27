@@ -82,8 +82,7 @@ class ChatServerConnector extends Thread {
 	}
 
 	public void run() {
-		System.out.println("[system] connected with " + this.socket.getInetAddress().getHostName() + ":" + this.socket.getPort());
-
+		
 		DataInputStream in;
 		try {
 			in = new DataInputStream(this.socket.getInputStream()); // create input stream for listening for incoming messages
@@ -93,11 +92,15 @@ class ChatServerConnector extends Thread {
 			this.server.removeClient(socket);
 			return;
 		}
-
+		int stevec=0;
+		String[] podatkiOSporocilu;
 		while (true) { // infinite loop in which this thread waits for incoming messages and processes them
 			String msg_received;
+
 			try {
 				msg_received = in.readUTF(); // read the message from the client
+				podatkiOSporocilu =tolmaciSporocilo(msg_received);
+				//izpisiTabelo(tabela);
 			} catch (Exception e) {
 				System.err.println("[system] there was a problem while reading message client on port " + this.socket.getPort());
 				e.printStackTrace(System.err);
@@ -108,17 +111,40 @@ class ChatServerConnector extends Thread {
 			if (msg_received.length() == 0) // invalid message
 				continue;
 
-			System.out.println("[RKchat] [" + this.socket.getPort() + "] : " + msg_received); // print the incoming message in the console
+			System.out.println("[RKchat] [" + this.socket.getPort() + "] " + "Uporabnik: \"" + podatkiOSporocilu[0] + "\" Cas: "+ podatkiOSporocilu[3] + "\nSporocilo: "+ podatkiOSporocilu[4]); // print the incoming message in the console
 
-			String msg_send = "someone said: " + msg_received.toUpperCase(); // TODO
+			String msg_send = ": " + msg_received; // TODO
 
 			try {
-				this.server.sendToAllClients(msg_send); // send message to all clients
+				this.server.sendToAllClients(podatkiOSporocilu[0]+ ": " + podatkiOSporocilu[4]); // send message to all clients
 			} catch (Exception e) {
 				System.err.println("[system] there was a problem while sending the message to all clients");
 				e.printStackTrace(System.err);
 				continue;
 			}
+		}
+	}
+	private static String[] tolmaciSporocilo(String sporocilo){
+		String podatkiOSporocilu[]=new String[5];
+		int stevec=-1;
+		String temp="";
+		for(int i=0; i< sporocilo.length(); i++){
+			if(sporocilo.charAt(i)=='{'){
+				stevec++;
+				continue;
+			}
+			if(sporocilo.charAt(i)=='}'){
+				podatkiOSporocilu[stevec]=temp;
+				temp="";
+				continue;
+			}
+			temp=temp+sporocilo.charAt(i);
+		}
+		return podatkiOSporocilu;
+	}
+	private static void izpisiTabelo(String[] tabela){
+		for(int i=0; i<tabela.length; i++){
+			System.out.println(tabela[i]);
 		}
 	}
 }
