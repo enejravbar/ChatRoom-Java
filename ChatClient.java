@@ -28,6 +28,10 @@ public class ChatClient extends Thread
 			out = new DataOutputStream(socket.getOutputStream()); // create output stream for sending messages
 			System.out.println("[system] connected");
 			uporabnik=JOptionPane.showInputDialog("Vpisite svoje uporabnisko ime."); // posreduj imeUporabnika
+			while(uporabnik.length()==0){
+				uporabnik=JOptionPane.showInputDialog("Vpisite veljavno uporabnisko ime."); // posreduj imeUporabnika
+			}
+			System.out.println("Prijavljen si kot " + "\""+uporabnik+"\".");
 			this.sendMessage(uporabnik,out);
 			ChatClientMessageReceiver message_receiver = new ChatClientMessageReceiver(in); // create a separate thread for listening to messages from the chat server
 			message_receiver.start(); // run the new thread
@@ -126,8 +130,9 @@ class ChatClientMessageReceiver extends Thread {
 				System.out.println("[RKchat] " + message); // print the message to the console
 			}
 		} catch (Exception e) {
-			System.err.println("[system] could not read message");
-			e.printStackTrace(System.err);
+			System.out.println("[system] Povezava s streznikom je bila izgubljena!");
+			//e.printStackTrace(System.err);
+			System.exit(1);
 		}
 	}
 }

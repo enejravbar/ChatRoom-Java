@@ -79,26 +79,47 @@ public class ChatServer {
 
 	public void posljiPrivatnoSporocilo(String message, String naslovnik, String uporabnik) throws Exception {
 		Socket povratniSocket=null;
+		int kontrola=0;
 		for(int i=0; i< clients.size(); i++){
 			if((uporabniskaImena.get(i)).equals(uporabnik)){
 				povratniSocket= clients.get(i);
 			}
 			if((uporabniskaImena.get(i)).equals(naslovnik)){
 				Socket privatniSocket = clients.get(i); // get the socket for communicating with this client
+
 				try {
 				DataOutputStream out = new DataOutputStream(privatniSocket.getOutputStream()); // create output stream for sending messages to the client
 				out.writeUTF(message); // send message to the client
+				kontrola=1;
 				} catch (Exception e) {
-				System.err.println("[system] could not send message to a client");
+				System.err.println("[system] Napaka pri posiljanju!");
 				e.printStackTrace(System.err);
+				kontrola=0;
 				}
-			}if(i==clients.size()-1){
+				break;
+			}if(i==clients.size()-1 && kontrola == 0){
 
 				DataOutputStream out = new DataOutputStream(povratniSocket.getOutputStream()); // create output stream for sending messages to the client
 				out.writeUTF("Privatnega sporocila ni bilo mogoce posredovati! Uporabnik ni prijavljen."); // send message to the client
 				break;
 			}
 			
+		}
+	}
+
+	public void posljiObvestiloOOdjaviUporabnika(Socket socket) {
+		for(int i=0; i<clients.size();i++){
+			if(clients.get(i)==socket){
+				try{
+				removeClient(socket);
+				sendToAllClients("Uporabnik "+"\""+uporabniskaImena.get(i)+"\" je zapustil klepetalnico.");
+				System.out.println("Uporabnik "+"\""+uporabniskaImena.get(i)+"\" je zapustil klepetalnico.");
+				uporabniskaImena.remove(i);
+				}catch(Exception ex){
+
+				}
+
+			}
 		}
 	}
 
@@ -140,9 +161,11 @@ class ChatServerConnector extends Thread {
 				podatkiOSporocilu =tolmaciSporocilo(msg_received);
 				//izpisiTabelo(tabela);
 			} catch (Exception e) {
-				System.err.println("[system] there was a problem while reading message client on port " + this.socket.getPort());
-				e.printStackTrace(System.err);
-				this.server.removeClient(this.socket);
+				//System.err.println("[system] there was a problem while reading message client on port " + this.socket.getPort());
+				//e.printStackTrace(System.err);
+
+				this.server.posljiObvestiloOOdjaviUporabnika(this.socket);
+				//this.server.removeClient(this.socket);
 				return;
 			}
 
